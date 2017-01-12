@@ -1,5 +1,9 @@
 var map;
 var infowindow;
+var foursquareCredentials = {
+	CLIENT_ID: 'JL1XI0M0BJUBQ1UY1UU3IQDYXARODAJSLYHY5YL05U3N4HDX',
+	CLIENT_SECRET: 'NTKTYTMUQHGLY23MAQ0IPEVC0BUU2JEANK25EDPT2OU4QITA'
+}
 
 function initMap() {
 	map = new google.maps.Map(document.getElementById('map'), {
@@ -9,7 +13,8 @@ function initMap() {
 	infowindow = new google.maps.InfoWindow({
           content: ""
     });
-
+    //initialize view model after map gets loaded
+	ko.applyBindings(new ViewModel());
 }
 
 // var locations = [];
@@ -79,17 +84,27 @@ var ViewModel = function(){
 		location.marker.info.open(map, location.marker);
 		self.inputLocation(location.name());
 	}
-	this.getLocationImage = function(longitude,latitude,callback){
+	this.getLocationImage = function(name,longitude,latitude,callback){
 		$.ajax({
-			url: 'https://en.wikipedia.org/w/api.php?action=query&titles=San_Francisco&prop=images&imlimit=1&format=jsonfm',
+			url: 'https://api.foursquare.com/v2/venues/explore?' +
+                                'client_id=' + foursquareCredentials.CLIENT_ID +
+                                '&client_secret=' + foursquareCredentials.CLIENT_SECRET +
+                                '&ll=' + latitude + ',' + longitude +
+                                '&query=' + name +
+                                '&v=20140806%20' +
+                                '&m=foursquare',
 			method: "GET",
 			dataType: "json",
 			success: function(result){
         		console.log(result);
-    	}});
+    		},
+    		error: function(data){
+    			console.log(data);
+    		}
+    	});
 	}
 	
-	this.getLocationImage(28.7041, 77.1025, function(data){
+	this.getLocationImage('delhi',28.7041, 77.1025, function(data){
 
 	});
 	getLocations(function(locations){
@@ -98,5 +113,3 @@ var ViewModel = function(){
 		});
 	});
 }
-
-ko.applyBindings(new ViewModel());
