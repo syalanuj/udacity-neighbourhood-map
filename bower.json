@@ -1,0 +1,29 @@
+{
+  "name": "udacity-neighborhood-map",
+  "authors": [
+    "syal.anuj@gmail.com"
+  ],
+  "description": "Udacity course assignment to display neighborhood location details",
+  "main": "",
+  "keywords": [
+    "udacity",
+    "assignment",
+    "neighborhood",
+    "location",
+    "google",
+    "maps"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "knockout": "knockout.js#^3.1.0"
+  }
+}
