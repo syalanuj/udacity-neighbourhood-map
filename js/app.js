@@ -44,15 +44,55 @@ var Location = function(data) {
 
 var ViewModel = function(){
 	var self = this;
+	self.getLocationImage = function(name,longitude,latitude,callback){
+		$.ajax({
+			url: 'https://api.foursquare.com/v2/venues/explore?' +
+                                'client_id=' + foursquareCredentials.CLIENT_ID +
+                                '&client_secret=' + foursquareCredentials.CLIENT_SECRET +
+                                '&ll=' + latitude + ',' + longitude +
+                                '&query=' + name +
+                                '&v=20140806%20' +
+                                '&m=foursquare',
+			method: "GET",
+			dataType: "json",
+			success: function(data){
+        		callback(data,true);
+    		},
+    		error: function(data){
+    			callback(data,false);
+    		}
+    	});
+	}
 	
 
 	this.locationList = ko.observableArray([]);
 	this.inputLocation = ko.observable('');
 
 	self.addMarkerListner = function(location) {
-		infowindow.setContent(location.name());
         location.marker.addListener('click', function() {
-          infowindow.open(location.marker.get('map'), location.marker);
+        	location.marker.setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png');
+        	infowindow.setContent(location.name());
+        	infowindow.open(location.marker.get('map'), location.marker);
+        	self.getLocationImage(location.name(),location.longitude(), location.latitude(), function(data, isSuccess){
+			if(isSuccess){
+				var infoContent = infowindow.content + '</br>' + '<div>' +
+					'Nearby locations-'+ 
+					'</div>';
+					if (data && data.response && data.response.groups.length > 0 
+					&& data.response.groups[0].items.length >0 ){
+						var items = data.response.groups[0].items
+					for(var i = 0; i< items.length; i ++){
+						infoContent = infoContent + '</br>' + items[i].venue.name
+					}
+				}
+				infowindow.setContent(infoContent);
+			}
+			else{
+				infowindow.setContent(infowindow.content + '</br>' + '<div>' +
+					'Error loading from Foursquare API'+ 
+					'</div>' );	
+			}
+		});
         });
 	}
 
@@ -81,32 +121,35 @@ var ViewModel = function(){
 
 	this.setFilterLocation = function(location){
 		location.marker.setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png');
-		location.marker.info.open(map, location.marker);
+		infowindow.setContent('<b>' + location.name() + '</b>');
+		infowindow.open(map, location.marker);
 		self.inputLocation(location.name());
+		self.getLocationImage(location.name(),location.longitude(), location.latitude(), function(data, isSuccess){
+			if(isSuccess){
+				var infoContent = infowindow.content + '</br>' + '<div>' +
+					'Nearby locations-'+ 
+					'</div>';
+					if (data && data.response && data.response.groups.length > 0 
+					&& data.response.groups[0].items.length >0 ){
+						var items = data.response.groups[0].items
+					for(var i = 0; i< items.length; i ++){
+						infoContent = infoContent + '</br>' + items[i].venue.name
+					}
+				}
+				infowindow.setContent(infoContent);
+			}
+			else{
+				infowindow.setContent(infowindow.content + '</br>' + '<div>' +
+					'Error loading from Foursquare API'+ 
+					'</div>' );	
+			}
+		});
 	}
-	this.getLocationImage = function(name,longitude,latitude,callback){
-		$.ajax({
-			url: 'https://api.foursquare.com/v2/venues/explore?' +
-                                'client_id=' + foursquareCredentials.CLIENT_ID +
-                                '&client_secret=' + foursquareCredentials.CLIENT_SECRET +
-                                '&ll=' + latitude + ',' + longitude +
-                                '&query=' + name +
-                                '&v=20140806%20' +
-                                '&m=foursquare',
-			method: "GET",
-			dataType: "json",
-			success: function(result){
-        		console.log(result);
-    		},
-    		error: function(data){
-    			console.log(data);
-    		}
-    	});
-	}
-	
-	this.getLocationImage('delhi',28.7041, 77.1025, function(data){
 
-	});
+
+	
+	
+	
 	getLocations(function(locations){
 		locations.forEach(function(location){
 			self.locationList.push(new Location(location));
