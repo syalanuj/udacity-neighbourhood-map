@@ -3,7 +3,7 @@ var infowindow;
 var foursquareCredentials = {
 	CLIENT_ID: 'JL1XI0M0BJUBQ1UY1UU3IQDYXARODAJSLYHY5YL05U3N4HDX',
 	CLIENT_SECRET: 'NTKTYTMUQHGLY23MAQ0IPEVC0BUU2JEANK25EDPT2OU4QITA'
-}
+};
 
 function initMap() {
 	map = new google.maps.Map(document.getElementById('map'), {
@@ -11,18 +11,27 @@ function initMap() {
 		zoom:11
 	});
 	infowindow = new google.maps.InfoWindow({
-          content: ""
+          content: ''
     });
     //initialize view model after map gets loaded
 	ko.applyBindings(new ViewModel());
-}
+};
 
-// var locations = [];
+//get locations metro station locations from metro.json file
 var getLocations = function(callback){
-	$.getJSON("js/metro.json", function(json) {
-    	callback(json); // this will show the info it in firebug console
-    });	
-}
+	$.getJSON({
+		url:'js/metro.json',
+		success: function(data){
+			callback(data);
+		},
+		error: function(data){
+			callback(null);
+		}
+	});	
+};
+function mapError() {
+	$('#error-message').text('Error loading google map');
+};
 
 
 var Location = function(data) {
@@ -44,7 +53,7 @@ var Location = function(data) {
 
 var ViewModel = function(){
 	var self = this;
-	self.getLocationImage = function(name,longitude,latitude,callback){
+	self.getNearbyLocations = function(name,longitude,latitude,callback){
 		$.ajax({
 			url: 'https://api.foursquare.com/v2/venues/explore?' +
                                 'client_id=' + foursquareCredentials.CLIENT_ID +
@@ -53,8 +62,8 @@ var ViewModel = function(){
                                 '&query=' + name +
                                 '&v=20140806%20' +
                                 '&m=foursquare',
-			method: "GET",
-			dataType: "json",
+			method: 'GET',
+			dataType: 'json',
 			success: function(data){
         		callback(data,true);
     		},
@@ -67,13 +76,15 @@ var ViewModel = function(){
 
 	this.locationList = ko.observableArray([]);
 	this.inputLocation = ko.observable('');
+	this.errorMessage = ko.observable('');
 
 	self.addMarkerListner = function(location) {
         location.marker.addListener('click', function() {
+        	self.removeAllSelectedMarker();
         	location.marker.setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png');
         	infowindow.setContent(location.name());
         	infowindow.open(location.marker.get('map'), location.marker);
-        	self.getLocationImage(location.name(),location.longitude(), location.latitude(), function(data, isSuccess){
+        	self.getNearbyLocations(location.name(),location.longitude(), location.latitude(), function(data, isSuccess){
 			if(isSuccess){
 				var infoContent = infowindow.content + '</br>' + '<div>' +
 					'Nearby locations-'+ 
@@ -124,16 +135,16 @@ var ViewModel = function(){
 		infowindow.setContent('<b>' + location.name() + '</b>');
 		infowindow.open(map, location.marker);
 		self.inputLocation(location.name());
-		self.getLocationImage(location.name(),location.longitude(), location.latitude(), function(data, isSuccess){
+		self.getNearbyLocations(location.name(),location.longitude(), location.latitude(), function(data, isSuccess){
 			if(isSuccess){
 				var infoContent = infowindow.content + '</br>' + '<div>' +
 					'Nearby locations-'+ 
 					'</div>';
 					if (data && data.response && data.response.groups.length > 0 
 					&& data.response.groups[0].items.length >0 ){
-						var items = data.response.groups[0].items
+						var items = data.response.groups[0].items;
 					for(var i = 0; i< items.length; i ++){
-						infoContent = infoContent + '</br>' + items[i].venue.name
+						infoContent = infoContent + '</br>' + items[i].venue.name;
 					}
 				}
 				infowindow.setContent(infoContent);
@@ -141,8 +152,14 @@ var ViewModel = function(){
 			else{
 				infowindow.setContent(infowindow.content + '</br>' + '<div>' +
 					'Error loading from Foursquare API'+ 
-					'</div>' );	
+					'</div>' );
+				self.errorMessage('Error with Foursquare Api');	
 			}
+		});
+	}
+	this.removeAllSelectedMarker = function() {
+		ko.utils.arrayFilter(this.locationList(), function(location) {
+			location.marker.setIcon(null);
 		});
 	}
 
@@ -151,8 +168,13 @@ var ViewModel = function(){
 	
 	
 	getLocations(function(locations){
-		locations.forEach(function(location){
-			self.locationList.push(new Location(location));
-		});
+		if (locations) {
+			locations.forEach(function(location){
+				self.locationList.push(new Location(location));
+			});
+		}
+		else{
+			self.errorMessage('Not able to load locations');
+		}
 	});
 }
